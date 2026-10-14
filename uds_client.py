@@ -42,6 +42,8 @@ class UdsClient:
 
         self.config = {
             'request_timeout': 5.0,
+            'p2_timeout': 5.0,          # 关键：把P2也改成5秒
+            'p2_star_timeout': 10.0,
             'data_identifiers': {
                 0xF190: udsoncan.AsciiCodec(17),
                 0x1902: udsoncan.AsciiCodec(4),
