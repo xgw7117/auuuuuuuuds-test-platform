@@ -1,0 +1,33 @@
+- name: "测试进入扩展会话"
+  action: "change_session"
+  params: [0x03]
+  expect_success: true
+
+- name: "测试安全访问解锁"
+  action: "security_access"
+  params: [0x01]
+  expect_success: true
+
+- name: "测试读取VIN码"
+  action: "read_data_by_id"
+  params: [0xF190]
+  expect_data: "LSVAA1234567890AB"
+
+- name: "测试读取DTC"
+  action: "read_data_by_id"
+  params: [0x1902]
+
+- name: "测试读取不存在的DID应返回NRC 0x31"
+  action: "read_data_by_id"
+  params: [0xFFFF]
+  expect_nrc: 0x31
+
+- name: "测试0x2E写入VIN码"
+  action: "write_data_by_id"
+  params: [0xF190, "LSVAA1234567890AB"]
+  expect_success: true
+
+- name: "测试0x19读取DTC"
+  action: "read_dtc"
+  params: [0x08]
+  expect_success: true
