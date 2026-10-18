@@ -1,6 +1,8 @@
 class TestResult:
     """所有UDS服务的统一返回类型"""
 
+    __test__ = False
+
     def __init__(self, success: bool, data=None, nrc: int = None):
         self.success = success
         self.data = data

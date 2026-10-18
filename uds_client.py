@@ -2,6 +2,8 @@ import can
 import isotp
 import udsoncan
 import logging
+from doipclient import DoIPClient
+from doipclient.connectors import DoIPClientUDSConnector
 from udsoncan.connections import PythonIsoTpConnection
 from udsoncan.client import Client
 from udsoncan.exceptions import NegativeResponseException
@@ -23,22 +25,53 @@ class TestResult:
 
 
 class UdsClient:
-    def __init__(self, channel='vcan0', tx_id=0x7E0, rx_id=0x7E8):
+    def __init__(
+        self,
+        transport='can',
+        channel='vcan0',
+        can_interface='virtual',
+        tx_id=0x7E0,
+        rx_id=0x7E8,
+        ecu_ip_address='127.0.0.1',
+        ecu_logical_address=0x1001,
+        client_logical_address=0x0E00,
+        tcp_port=13400,
+    ):
+        if transport not in {'can', 'doip'}:
+            raise ValueError("transport must be 'can' or 'doip'")
+
+        self.transport = transport
         self.tx_id = tx_id
         self.rx_id = rx_id
+        self.bus = None
+        self.doip_client = None
 
-        logger.info(f"初始化UdsClient: channel={channel}, tx=0x{tx_id:X}, rx=0x{rx_id:X}")
+        logger.info(f"初始化UdsClient: transport={transport}")
 
-        self.bus = can.Bus(interface='virtual', channel=channel)
-        self.isotp_layer = isotp.CanStack(
-            bus=self.bus,
-            address=isotp.Address(
-                isotp.AddressingMode.Normal_11bits,
-                txid=self.tx_id,
-                rxid=self.rx_id
+        if transport == 'can':
+            logger.info(f"CAN: interface={can_interface}, channel={channel}, tx=0x{tx_id:X}, rx=0x{rx_id:X}")
+            self.bus = can.Bus(interface=can_interface, channel=channel)
+            isotp_layer = isotp.CanStack(
+                bus=self.bus,
+                address=isotp.Address(
+                    isotp.AddressingMode.Normal_11bits,
+                    txid=self.tx_id,
+                    rxid=self.rx_id
+                )
             )
-        )
-        self.conn = PythonIsoTpConnection(self.isotp_layer)
+            self.conn = PythonIsoTpConnection(isotp_layer)
+        else:
+            logger.info(
+                f"DoIP: host={ecu_ip_address}:{tcp_port}, "
+                f"ecu=0x{ecu_logical_address:04X}, client=0x{client_logical_address:04X}"
+            )
+            self.doip_client = DoIPClient(
+                ecu_ip_address=ecu_ip_address,
+                ecu_logical_address=ecu_logical_address,
+                client_logical_address=client_logical_address,
+                tcp_port=tcp_port,
+            )
+            self.conn = DoIPClientUDSConnector(self.doip_client, close_connection=True)
 
         self.config = {
             'request_timeout': 5.0,
@@ -59,7 +92,8 @@ class UdsClient:
 
     def __exit__(self, *args):
         self.client.__exit__(*args)
-        self.bus.shutdown()
+        if self.bus is not None:
+            self.bus.shutdown()
         logger.info("UDS客户端已关闭")
 
     def change_session(self, sub_func=0x03):

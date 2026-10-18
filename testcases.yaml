@@ -12,10 +12,13 @@
   action: "read_data_by_id"
   params: [0xF190]
   expect_data: "LSVAA1234567890AB"
+  virtual_only: true
 
-- name: "测试读取DTC"
+- name: "测试读取DID 0x1902"
   action: "read_data_by_id"
   params: [0x1902]
+  expect_data: "DEMO"
+  virtual_only: true
 
 - name: "测试读取不存在的DID应返回NRC 0x31"
   action: "read_data_by_id"
